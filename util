@@ -1,0 +1,86 @@
+// ==UserScript==
+// @name         Gemini shift esc (Toggle Focus)
+// @namespace    http://tampermonkey.net/
+// @version      1.4.1
+// @description  shift + esc -> toggle focus between chat input and page (for scrolling)
+// @author       ldh (Modified for Korean)
+// @match        https://gemini.google.com/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // 한국어 UI 대응을 위한 설정값
+    const CFG = {
+        selectors: {
+            newChatButton: "button[aria-label*='새 채팅'], button[aria-label*='New chat']",
+            sidebarToggle: "[aria-label*='사이드 패널 숨기기'], [aria-label*='사이드 패널 표시'], [aria-label*='Main menu']",
+            textInputField: ".text-input-field",
+            enterPrompt: "[aria-label='여기에 프롬프트 입력'], [aria-label='Enter a prompt here']",
+            sendMessageButton: "[aria-label='메시지 보내기'], [aria-label='Send message']"
+        }
+    };
+
+    // 알림창 기능
+    function notify(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        div.style = "position:fixed; bottom:20px; left:20px; background:#333; color:#fff; padding:10px; border-radius:5px; z-index:9999; font-size:12px; opacity:0.9;";
+        document.body.appendChild(div);
+        setTimeout(() => {
+            div.style.transition = "opacity 0.5s";
+            div.style.opacity = "0";
+            setTimeout(() => div.remove(), 500);
+        }, 1500);
+    }
+
+    // 단축키 이벤트 리스너
+    document.addEventListener('keydown', (e) => {
+        const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+        const isShift = e.shiftKey;
+
+        // 1. 새 채팅 (Ctrl + Alt + O)
+        if (isCmdOrCtrl && e.altKey && e.key.toLowerCase() === 'o') {
+            e.preventDefault();
+            const btn = document.querySelector(CFG.selectors.newChatButton);
+            if (btn) {
+                btn.click();
+                notify("새 채팅 시작");
+            }
+        }
+
+        // 2. 사이드바 토글 (Ctrl + B)
+        if (isCmdOrCtrl && e.key.toLowerCase() === 'b') {
+            e.preventDefault();
+            const btn = document.querySelector(CFG.selectors.sidebarToggle);
+            if (btn) {
+                btn.click();
+            }
+        }
+
+        // 3. 입력창 포커스 토글 (Shift + Esc)
+        if (isShift && e.key === 'Escape') {
+            e.preventDefault();
+            const input = document.querySelector(CFG.selectors.enterPrompt);
+
+            if (input) {
+                // 현재 포커스가 입력창에 있는지 확인
+                if (document.activeElement === input) {
+                    // 이미 포커스 상태라면 포커스 해제 (Blur)
+                    input.blur();
+                    // 페이지 전체 스크롤을 위해 body 혹은 메인 영역에 포커스
+                    window.focus();
+                    notify("포커스 해제: 스크롤 모드 (Page Up/Down 가능)");
+                } else {
+                    // 포커스가 없다면 입력창으로 포커스 이동
+                    input.focus();
+                    notify("입력창 포커스");
+                }
+            }
+        }
+    }, true);
+
+    console.log("Gemini Korean Shortcut Script (Toggle Focus) Loaded");
+})();
